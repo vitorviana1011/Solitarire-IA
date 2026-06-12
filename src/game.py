@@ -22,10 +22,16 @@ class Game():
         self.paused = False
         self.time = 0
         self.goal_state = tuple((s.suit, s.symbol) for s in Suit for symbol in Symbol) # Objetivo é ter as 52 cartas nas fundações, em ordem crescente, começando com o Ás
+        self.profundidade = None
+        self.table_goal_state = tuple((c.suit, c.symbol) for c in self.stock.cards) # O estado do jogo é representado pelas cartas presentes nas fundações, em ordem crescente
+        self.heurisita = 0
 
     # Funcoes para busca em profundidade
     def is_goal_state(self, state):
         return state == self.goal_state
+    
+    def get_state(self):
+        return tuple((c.suit, c.symbol) for f in self.foundations for c in f.cards) # O estado do jogo é representado pelas cartas presentes nas fundações, em ordem crescente
     
     def get_possible_moves(self, state):
         podem_ser_movidos = []
@@ -46,6 +52,16 @@ class Game():
                         podem_ser_movidos.append((stack, pilhas))
             
         return podem_ser_movidos
+    
+    #heuristica: para cada carta na fundação, soma 2 pontos, e para cada carta presente no estoque, soma 1 ponto
+    def define_heuristica(self, state):
+        self.heurisita = 0
+        for i in range(4):
+            for j in range(13):
+                if state[i*13+j] == self.goal_state[i*13+j]:
+                    self.heurisita += 2
+                if state[i*13+j] in self.table_goal_state:
+                    self.heurisita += 1
 
     def create_deck(self):
         return deque(Card(self.app, suit, symbol) for symbol in Symbol for suit in Suit)

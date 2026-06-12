@@ -2,6 +2,7 @@ import pygame
 
 import assets
 import constants
+import move
 from game import Game
 from ui import UI, UIType
 
@@ -10,64 +11,65 @@ class BuscaProfundidade():
         self.game = game
         self.abertos = set()
         self.fechados = []
+        self.caminho = []
     
-    def busca_profundidade(self, state):
-        if state in self.abertos:
-            return False
-        
-        self.abertos.add(state)
-
-        if self.game.is_goal_state(state):
-            return True
-        
+    # Clona o estado atual do jogo para criar um novo estado a partir dele
+    def clone_game(self):
+        clone = Game(self.game.app)
+        clone.stacks = [s.clone(clone) for s in self.game.stacks]
+        clone.foundations = [f.clone(clone) for f in self.game.foundations]
+        clone.stock = clone.stacks[0]
+        clone.profundidade = self.game.profundidade + 1 if self.game.profundidade is not None else 0
+        return clone
+    
+    # Aplica o movimento no jogo clonado, verificando o tipo do movimento para aplicar a função correta
+    def apply_move(self, move):
+        if isinstance(move, move.MoveMove):
+            move.redo()
+        elif isinstance(move, move.FlipMove):
+            move.redo()
+        elif isinstance(move, move.ConcurrentMoves):
+            for m in move.moves:
+                m.redo()
+        elif isinstance(move, move.SequentialMoves):
+            for m in move.moves:
+                m.redo()
+    
+    # Gera os estados filhos a partir do estado atual, aplicando todos os movimentos possíveis
+    def get_filhos(self, state):
+        filhos = []
         for move in self.game.get_possible_moves(state):
-            new_state = self.game.apply_move(state, move)
-            if self.busca_profundidade(new_state):
-                self.fechados.append(move)
-                return True
-        
-        return False
-    
-    def DFS(init):
-        abertos = [init]
-        fechados = []
-        objetivo = [[1,2,3], [8,0,4], [7,6,5]]
-        iteracoes = 0
-        profundidade = 0
+            clone = self.clone_game()
+            clone.apply_move(move)
+            filhos.append(clone.get_state())
 
-        while abertos:
-            no = abertos.pop(0)
-            profundidade = contarProfundidade(no)
-            #print("No atual: " + str(no.matriz))
-            if no.matriz == objetivo:
-                print("Numero de iterações: " + str(iteracoes))
-                return no
-            elif profundidade < 5:  # Limitar a profundidade máxima
-                no.filhos = gerarFilhos(no)
-                fechados.append(no)
-                if no.filhos:
-                    for filho in no.filhos:
-                        matrizFilho = filho.matriz
-                        for matrizAberta in abertos:
-                            if matrizFilho == matrizAberta.matriz:
-                                break
-                        for matrizFechada in fechados:
-                            if matrizFilho == matrizFechada.matriz:
-                                break
-                        else:
-                            abertos.insert(0, filho)
-            iteracoes += 1
-        
-        return None
+        filhos.sort(key=lambda x: self.game.define_heuristica(x), reverse=True) # Ordena os filhos pela heurística, para priorizar os estados mais promissores
+
+        return filhos
     
-    def contarProfundidade(no):
-        profundidade = 0
-        while no.pai is not None:
-            no = no.pai
-            profundidade += 1
-        return profundidade
-    
-    def gerarFilhos(estado):
+    def execute_solution(self, historico):
         pass
-        return 
+    
+    def busca_profundidade(self):
+        self.abertos.add(self.game.get_state())
+        historico = []
+
+        while self.abertos:
+            estado_atual = self.abertos.pop()
+
+            if self.game.is_goal_state(estado_atual):
+                historico = estado_atual.get_history() # Recupera o histórico de movimentos para chegar ao estado objetivo
+                self.execute_solution(historico)
+                return True
+            
+            if estado_atual.profundidade >= 200: # Limite de profundidade para evitar loops infinitos
+                print("Limite de profundidade atingido, abortando busca em profundidade")
+                return False
+            
+            filhos = self.get_filhos(estado_atual)
+            self.fechados.append(estado_atual)
+            for filho in filhos:
+                if filho not in self.abertos and filho not in self.fechados:
+                    self.abertos.add(filho)
+        return False
 

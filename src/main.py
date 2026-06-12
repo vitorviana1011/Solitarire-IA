@@ -2,6 +2,8 @@ import pygame
 
 import assets
 import constants
+import buscaProfundidade
+import threading
 from game import Game
 from ui import UI, UIType
 
@@ -118,6 +120,16 @@ class App():
     # endregion
 
     # region Keyboard events
+
+    def on_key_b(self, event):
+        if self.ui.current == UIType.GAME:
+            from buscaProfundidade import BuscaProfundidade
+            busca = BuscaProfundidade(self.game)
+            
+            # Roda em thread separada
+            thread = threading.Thread(target=busca.busca_profundidade, daemon=True)
+            thread.start()
+
     def on_key_n(self, event):
         if event.mod & pygame.KMOD_CTRL:
             self.new_game()
