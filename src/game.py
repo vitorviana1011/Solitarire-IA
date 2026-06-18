@@ -21,9 +21,9 @@ class Game():
         self.deal()
         self.paused = False
         self.time = 0
-        self.goal_state = tuple((s.suit, s.symbol) for s in Suit for symbol in Symbol) # Objetivo é ter as 52 cartas nas fundações, em ordem crescente, começando com o Ás
+        self.goal_state = tuple((s, symbol) for s in Suit for symbol in Symbol) # Objetivo é ter as 52 cartas nas fundações, em ordem crescente, começando com o Ás
         self.profundidade = None
-        self.table_goal_state = tuple((c.suit, c.symbol) for c in self.stock.cards) # O estado do jogo é representado pelas cartas presentes nas fundações, em ordem crescente
+        self.table_goal_state = tuple((c.suit, c.symbol) for f in self.foundations for c in f.cards) # O estado do jogo é representado pelas cartas presentes nas fundações, em ordem crescente
         self.heurisita = 0
 
     # Funcoes para busca em profundidade
@@ -36,32 +36,43 @@ class Game():
     def get_possible_moves(self, state):
         podem_ser_movidos = []
         
+        # Adiciona movimento de flip do Stock se houver cartas
+        stock = self.stacks[0]  # StockStack é o primeiro
+        waste = self.stacks[1]  # WasteStack é o segundo
+        if not stock.is_empty:
+            # Move 1 carta do stock para waste
+            podem_ser_movidos.append((stock, waste))
+        elif not waste.is_empty:
+            # Recoloca waste de volta ao stock
+            podem_ser_movidos.append((waste, stock))
+        
         for stack in self.stacks:
-            if not stack.is_empty and stack.size() == 1:
+            if not stack.is_empty and stack.size == 1:
                 topo = stack.card_on_top
                 for pilhas in self.stacks:
                     if pilhas != stack and pilhas.can_enter(topo, 1):
                         podem_ser_movidos.append((stack, pilhas))
                         
-            if not stack.is_empty and stack.size() > 1:
+            if not stack.is_empty and stack.size > 1:
                 cartas_viradas = stack.cont_flipped_cards()
-                cartas_mover = stack.cards[stack.size()-cartas_viradas:stack.size()]
+                cartas_mover = list(stack.cards)[stack.size-cartas_viradas:stack.size]
                 
-                for pilhas in self.stacks:
-                    if pilhas != stack and pilhas.can_enter(cartas_mover[0], len(cartas_mover)):
-                        podem_ser_movidos.append((stack, pilhas))
+                if cartas_mover:
+                    for pilhas in self.stacks:
+                        if pilhas != stack and pilhas.can_enter(cartas_mover[0], len(cartas_mover)):
+                            podem_ser_movidos.append((stack, pilhas))
             
         return podem_ser_movidos
     
     #heuristica: para cada carta na fundação, soma 2 pontos, e para cada carta presente no estoque, soma 1 ponto
     def define_heuristica(self, state):
         self.heurisita = 0
-        for i in range(4):
-            for j in range(13):
-                if state[i*13+j] == self.goal_state[i*13+j]:
-                    self.heurisita += 2
-                if state[i*13+j] in self.table_goal_state:
-                    self.heurisita += 1
+        for i, card in enumerate(state):
+            if i < len(self.goal_state) and card == self.goal_state[i]:
+                self.heurisita += 2
+            if card in self.table_goal_state:
+                self.heurisita += 1
+        return self.heurisita
 
     def create_deck(self):
         return deque(Card(self.app, suit, symbol) for symbol in Symbol for suit in Suit)
