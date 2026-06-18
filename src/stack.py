@@ -40,6 +40,15 @@ class Stack(ABC):
     @property
     def rect(self):
         return pygame.Rect(self.pos, (constants.CARD_WIDTH, constants.CARD_HEIGHT))
+    
+    def clone(self, new_game):
+        # Cria uma nova instância da mesma classe filha atual (ex: FoundationStack, TableauStack...)
+        cloned_stack = self.__class__(new_game.app, self.pos)
+        cloned_stack.draw_empty = self.draw_empty
+        
+        # Clona cada carta usando o método do card.py
+        cloned_stack.cards = deque(card.clone(new_game.app) for card in self.cards)
+        return cloned_stack
 
     def reset_pos(self):
         for card, pos in zip(self.cards, self.get_card_pos()):

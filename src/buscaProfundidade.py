@@ -1,84 +1,105 @@
-import pygame
-
-import assets
-import constants
 import move
 from game import Game
-from ui import UI, UIType
+
 
 class BuscaProfundidade():
     def __init__(self, game):
         self.game = game
-        self.abertos = set()
+        self.abertos = []
         self.fechados = []
-        self.caminho = []
-    
-    # Clona o estado atual do jogo para criar um novo estado a partir dele
-    def clone_game(self):
-        clone = Game(self.game.app)
-        clone.stacks = [s.clone(clone) for s in self.game.stacks]
-        clone.foundations = [f.clone(clone) for f in self.game.foundations]
-        clone.stock = clone.stacks[0]
-        clone.profundidade = self.game.profundidade + 1 if self.game.profundidade is not None else 0
+
+    def clone_game_from(self, source):
+        clone = Game.__new__(Game)  # evita __init__ que embaralha tudo
+        clone.app = source.app
+        clone.history = None
+        clone.animations = set()
+        clone.paused = False
+        clone.time = 0
+        clone.goal_state = source.goal_state
+        clone.profundidade = source.profundidade
+        clone.heurisita = 0
+
+        clone.foundations = tuple(f.clone(clone) for f in source.foundations)
+        clone.tableaus = tuple(t.clone(clone) for t in source.tableaus)
+        clone.waste = source.waste.clone(clone)
+        clone.stock = source.stock.clone(clone)
+        clone.drag = source.drag.clone(clone)
+
+        clone.clickable_stacks = clone.foundations + clone.tableaus + (clone.stock, clone.waste)
+        clone.stacks = (clone.stock, clone.waste) + tuple(reversed(clone.tableaus)) + tuple(reversed(clone.foundations)) + (clone.drag,)
+
         return clone
-    
-    # Aplica o movimento no jogo clonado, verificando o tipo do movimento para aplicar a função correta
-    def apply_move(self, move):
-        if isinstance(move, move.MoveMove):
-            move.redo()
-        elif isinstance(move, move.FlipMove):
-            move.redo()
-        elif isinstance(move, move.ConcurrentMoves):
-            for m in move.moves:
-                m.redo()
-        elif isinstance(move, move.SequentialMoves):
-            for m in move.moves:
-                m.redo()
-    
-    # Gera os estados filhos a partir do estado atual, aplicando todos os movimentos possíveis
+
+    def apply_move(self, m):
+        if isinstance(m, move.MoveMove):
+            m.redo()
+        elif isinstance(m, move.FlipMove):
+            m.redo()
+        elif isinstance(m, move.ConcurrentMoves):
+            for sub in m.moves:
+                self.apply_move(sub)
+        elif isinstance(m, move.SequentialMoves):
+            for sub in m.moves:
+                self.apply_move(sub)
+
     def get_filhos(self, game_atual):
         filhos = []
-        for move in game_atual.get_possible_moves(game_atual.get_state()):
-            clone = self.clone_game()
-            clone.profundidade = game_atual.profundidade + 1 if game_atual.profundidade is not None else 0
-            self.apply_move(move)
+        possiveis_movimentos = game_atual.get_possible_moves(game_atual.get_state())
+
+        for origem, destino in possiveis_movimentos:
+            clone = self.clone_game_from(game_atual)
+            clone.profundidade = game_atual.profundidade + 1
+
+            pilha_origem = next((s for s in clone.stacks if s.pos == origem.pos), None)
+            pilha_destino = next((s for s in clone.stacks if s.pos == destino.pos), None)
+
+            if not pilha_origem or not pilha_destino or pilha_origem.is_empty:
+                continue
+
+            # Calcula quantas cartas mover (topo virado = 1, grupo = várias)
+            amount = origem.cont_flipped_cards() if hasattr(origem, 'cont_flipped_cards') else 1
+            amount = max(1, min(amount, pilha_origem.size))
+
+            movimento_objeto = move.MoveMove(pilha_origem, pilha_destino, amount)
+            self.apply_move(movimento_objeto)
+
+            clone.heurisita = clone.define_heuristica()
             filhos.append(clone)
 
-        filhos.sort(key=lambda x: self.game.define_heuristica(x), reverse=True) # Ordena os filhos pela heurística, para priorizar os estados mais promissores
-
+        filhos.sort(key=lambda x: x.heurisita, reverse=True)
         return filhos
-    
-    def execute_solution(self, historico):
-        pass
-    
+
     def busca_profundidade(self):
-        self.abertos.add(self.clone_game()) # Adiciona o estado inicial à lista de abertos
-        historico = []
-        visitados = set() # Guarda apenas as tuplas, otimizando a verificação de estados já visitados
+        estado_inicial = self.clone_game_from(self.game)
+        estado_inicial.profundidade = 0
+        self.abertos = [estado_inicial]
+        visitados = set()
+        self.fechados = []
+
+        print("Iniciando Busca em Profundidade...")
 
         while self.abertos:
             game_atual = self.abertos.pop()
             estado_tupla = game_atual.get_state()
 
-            if self.game.is_goal_state(estado_tupla):
-                historico = game_atual.get_history() # Recupera o histórico de movimentos para chegar ao estado objetivo
-                self.execute_solution(historico)
-                return True
-            
-            if game_atual.profundidade >= 200: # Limite de profundidade para evitar loops infinitos
-                print("Limite de profundidade atingido, abortando busca em profundidade")
-                continue
-
             if estado_tupla in visitados:
                 continue
 
             visitados.add(estado_tupla)
-            self.fechados.append(game_atual)
-            
-            filhos = self.get_filhos(game_atual)
-            self.fechados.append(game_atual)
-            for filho in filhos:
-                if filho not in self.abertos and filho not in self.fechados:
-                    self.abertos.add(filho)
-        return False
+            self.fechados.append(estado_tupla)
 
+            print(f"Profundidade: {game_atual.profundidade}, Heurística: {game_atual.heurisita}, "
+                  f"Abertos: {len(self.abertos)}, Fechados: {len(self.fechados)}")
+
+            if game_atual.is_goal_state(estado_tupla):
+                print("Solução encontrada!")
+                return True
+
+            if game_atual.profundidade >= 200:
+                continue
+
+            for filho in self.get_filhos(game_atual):
+                self.abertos.append(filho)
+
+        print("Busca em profundidade concluída. Não encontrou solução.")
+        return False

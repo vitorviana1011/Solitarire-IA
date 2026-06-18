@@ -28,10 +28,17 @@ class Game():
 
     # Funcoes para busca em profundidade
     def is_goal_state(self, state):
-        return state == self.goal_state
+        return sum(len(f.cards) for f in self.foundations) == 52
     
     def get_state(self):
-        return tuple((c.suit, c.symbol) for f in self.foundations for c in f.cards) # O estado do jogo é representado pelas cartas presentes nas fundações, em ordem crescente
+        estado_completo = []
+        
+        for pilha in self.stacks:
+            # Para cada pilha, guardamos uma tupla com as características das suas cartas
+            cartas_da_pilha = tuple((c.suit, c.symbol, c.flipped) for c in pilha.cards)
+            estado_completo.append(cartas_da_pilha)
+            
+        return tuple(estado_completo)
     
     def get_possible_moves(self, state):
         podem_ser_movidos = []
@@ -40,7 +47,6 @@ class Game():
         stock = self.stacks[0]  # StockStack é o primeiro
         waste = self.stacks[1]  # WasteStack é o segundo
         if not stock.is_empty:
-            # Move 1 carta do stock para waste
             podem_ser_movidos.append((stock, waste))
         elif not waste.is_empty:
             # Recoloca waste de volta ao stock
@@ -65,14 +71,17 @@ class Game():
         return podem_ser_movidos
     
     #heuristica: para cada carta na fundação, soma 2 pontos, e para cada carta presente no estoque, soma 1 ponto
-    def define_heuristica(self, state):
-        self.heurisita = 0
-        for i, card in enumerate(state):
-            if i < len(self.goal_state) and card == self.goal_state[i]:
-                self.heurisita += 2
-            if card in self.table_goal_state:
-                self.heurisita += 1
-        return self.heurisita
+    def define_heuristica(self, state=None):
+        pontuacao = 0
+        
+        for fundacao in self.foundations:
+            pontuacao += len(fundacao.cards) * 2
+            
+            for carta in self.tableaus[0].cards:  # Supondo que queremos verificar a primeira pilha de tableaus
+                if not carta.flipped: # Se a carta está revelada (frente)
+                    pontuacao += 1
+                    
+        return pontuacao
 
     def create_deck(self):
         return deque(Card(self.app, suit, symbol) for symbol in Symbol for suit in Suit)

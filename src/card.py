@@ -76,3 +76,10 @@ class Card():
 
     def flip(self):
         self.flipped = not self.flipped
+
+    def clone(self, new_app):
+        cloned_card = Card(new_app, self.suit, self.symbol)
+        cloned_card.flipped = self.flipped
+        cloned_card.pos = self.pos
+        cloned_card.surface = self.surface
+        return cloned_card
