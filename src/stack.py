@@ -128,6 +128,15 @@ class TableauStack(Stack):
                 return 0 if self.cards[i].flipped else self.size-i
 
         return 1
+    
+    def clone(self, new_game):
+        # Cria uma nova instância da mesma classe filha atual (ex: FoundationStack, TableauStack...)
+        cloned_stack = self.__class__(new_game.app, self.pos)
+        cloned_stack.draw_empty = self.draw_empty
+        
+        # Clona cada carta usando o método do card.py
+        cloned_stack.cards = deque(card.clone(new_game.app) for card in self.cards)
+        return cloned_stack
 
 
 # Squared
@@ -146,6 +155,15 @@ class FoundationStack(Stack):
             return card.symbol == Symbol.ACE
 
         return self.card_on_top.suit == card.suit and card.symbol.is_next(self.card_on_top.symbol)
+    
+    def clone(self, new_game):
+        # Cria uma nova instância da mesma classe filha atual (ex: FoundationStack, TableauStack...)
+        cloned_stack = self.__class__(new_game.app, self.pos)
+        cloned_stack.draw_empty = self.draw_empty
+        
+        # Clona cada carta usando o método do card.py
+        cloned_stack.cards = deque(card.clone(new_game.app) for card in self.cards)
+        return cloned_stack
 
 
 # Deck
@@ -162,6 +180,14 @@ class StockStack(FoundationStack):
     def get_cards_to_drag(self, pos):
         return 0
 
+    def clone(self, new_game):
+        # Cria uma nova instância da mesma classe filha atual (ex: FoundationStack, TableauStack...)
+        cloned_stack = self.__class__(new_game.app, self.pos)
+        cloned_stack.draw_empty = self.draw_empty
+        
+        # Clona cada carta usando o método do card.py
+        cloned_stack.cards = deque(card.clone(new_game.app) for card in self.cards)
+        return cloned_stack
 
 # Fanned sideways
 class WasteStack(Stack):
@@ -192,6 +218,15 @@ class WasteStack(Stack):
         if pygame.Rect(list(self.get_card_pos()).pop(), (constants.CARD_WIDTH, constants.CARD_HEIGHT)).collidepoint(pos):
             return 1
         return 0
+    
+    def clone(self, new_game):
+        # Cria uma nova instância da mesma classe filha atual (ex: FoundationStack, TableauStack...)
+        cloned_stack = self.__class__(new_game.app, self.pos)
+        cloned_stack.draw_empty = self.draw_empty
+        
+        # Clona cada carta usando o método do card.py
+        cloned_stack.cards = deque(card.clone(new_game.app) for card in self.cards)
+        return cloned_stack
 
 
 # Follows the mouse
@@ -210,3 +245,12 @@ class DragStack(TableauStack):
 
     def get_cards_to_drag(self, pos):
         return 0
+    
+    def clone(self, new_game):
+        # Cria uma nova instância da mesma classe filha atual (ex: FoundationStack, TableauStack...)
+        cloned_stack = self.__class__(new_game.app, self.pos)
+        cloned_stack.draw_empty = self.draw_empty
+        
+        # Clona cada carta usando o método do card.py
+        cloned_stack.cards = deque(card.clone(new_game.app) for card in self.cards)
+        return cloned_stack

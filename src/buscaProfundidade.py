@@ -1,5 +1,7 @@
 import move
 from game import Game
+import heapq
+import itertools
 
 
 class BuscaProfundidade():
@@ -7,6 +9,7 @@ class BuscaProfundidade():
         self.game = game
         self.abertos = []
         self.fechados = []
+        self.contador = itertools.count()
 
     def clone_game_from(self, source):
         clone = Game.__new__(Game)  # evita __init__ que embaralha tudo
@@ -56,12 +59,23 @@ class BuscaProfundidade():
             if not pilha_origem or not pilha_destino or pilha_origem.is_empty:
                 continue
 
-            # Calcula quantas cartas mover (topo virado = 1, grupo = várias)
-            amount = origem.cont_flipped_cards() if hasattr(origem, 'cont_flipped_cards') else 1
-            amount = max(1, min(amount, pilha_origem.size))
+            # Determina quantas cartas (com face para cima) mover do topo
+            amount = 1
+            if pilha_origem.size > 1:
+                cartas_mover = []
+                for card in reversed(pilha_origem.cards):
+                    if not card.flipped:
+                        cartas_mover.insert(0, card)
+                    else:
+                        break
+                amount = len(cartas_mover) if cartas_mover else 1
 
             movimento_objeto = move.MoveMove(pilha_origem, pilha_destino, amount)
             self.apply_move(movimento_objeto)
+
+            # Revela automaticamente a carta que ficou exposta no topo da origem
+            if not pilha_origem.is_empty and pilha_origem.card_on_top.flipped:
+                pilha_origem.card_on_top.flip()
 
             clone.heurisita = clone.define_heuristica()
             filhos.append(clone)
@@ -69,37 +83,41 @@ class BuscaProfundidade():
         filhos.sort(key=lambda x: x.heurisita, reverse=True)
         return filhos
 
-    def busca_profundidade(self):
+    def busca_profundidade(self, estado_inicial=None):
         estado_inicial = self.clone_game_from(self.game)
         estado_inicial.profundidade = 0
-        self.abertos = [estado_inicial]
+        estado_inicial.heurisita = estado_inicial.define_heuristica()
+
+        # heapq é min-heap, então usamos -heurística para simular max-heap
+        abertos = [(-estado_inicial.heurisita, next(self.contador), estado_inicial)]
         visitados = set()
-        self.fechados = []
+        fechados = 0
 
-        print("Iniciando Busca em Profundidade...")
+        print("Iniciando Busca Melhor-Primeiro...")
 
-        while self.abertos:
-            game_atual = self.abertos.pop()
+        while abertos:
+            _, _, game_atual = heapq.heappop(abertos)
             estado_tupla = game_atual.get_state()
 
             if estado_tupla in visitados:
                 continue
 
             visitados.add(estado_tupla)
-            self.fechados.append(estado_tupla)
+            fechados += 1
 
-            print(f"Profundidade: {game_atual.profundidade}, Heurística: {game_atual.heurisita}, "
-                  f"Abertos: {len(self.abertos)}, Fechados: {len(self.fechados)}")
+            if fechados % 50 == 0:
+                print(f"Profundidade: {game_atual.profundidade}, Heurística: {game_atual.heurisita}, "
+                      f"Abertos: {len(abertos)}, Fechados: {fechados}")
 
             if game_atual.is_goal_state(estado_tupla):
                 print("Solução encontrada!")
                 return True
 
-            if game_atual.profundidade >= 200:
+            if game_atual.profundidade >= 500:
                 continue
 
             for filho in self.get_filhos(game_atual):
-                self.abertos.append(filho)
+                heapq.heappush(abertos, (-filho.heurisita, next(self.contador), filho))
 
-        print("Busca em profundidade concluída. Não encontrou solução.")
+        print(f"Busca concluída. Não encontrou solução. Fechados: {fechados}")
         return False

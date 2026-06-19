@@ -31,38 +31,43 @@ class Game():
         return sum(len(f.cards) for f in self.foundations) == 52
     
     def get_state(self):
+        pilhas_relevantes = self.foundations + self.tableaus + (self.stock, self.waste)
         estado_completo = []
-        
-        for pilha in self.stacks:
-            # Para cada pilha, guardamos uma tupla com as características das suas cartas
+        for pilha in pilhas_relevantes:
             cartas_da_pilha = tuple((c.suit, c.symbol, c.flipped) for c in pilha.cards)
             estado_completo.append(cartas_da_pilha)
-            
         return tuple(estado_completo)
     
     def get_possible_moves(self, state):
         podem_ser_movidos = []
         
-        # Adiciona movimento de flip do Stock se houver cartas
-        stock = self.stacks[0]  # StockStack é o primeiro
-        waste = self.stacks[1]  # WasteStack é o segundo
+        stock = self.stacks[0]
+        waste = self.stacks[1]
         if not stock.is_empty:
             podem_ser_movidos.append((stock, waste))
         elif not waste.is_empty:
-            # Recoloca waste de volta ao stock
             podem_ser_movidos.append((waste, stock))
         
         for stack in self.stacks:
-            if not stack.is_empty and stack.size == 1:
+            if stack.is_empty:
+                continue
+
+            if stack.size == 1:
                 topo = stack.card_on_top
-                for pilhas in self.stacks:
-                    if pilhas != stack and pilhas.can_enter(topo, 1):
-                        podem_ser_movidos.append((stack, pilhas))
-                        
-            if not stack.is_empty and stack.size > 1:
-                cartas_viradas = stack.cont_flipped_cards()
-                cartas_mover = list(stack.cards)[stack.size-cartas_viradas:stack.size]
-                
+                if not topo.flipped:  # só pode mover se estiver com a face para cima
+                    for pilhas in self.stacks:
+                        if pilhas != stack and pilhas.can_enter(topo, 1):
+                            podem_ser_movidos.append((stack, pilhas))
+
+            elif stack.size > 1:
+                # conta cartas com face para cima a partir do topo
+                cartas_mover = []
+                for card in reversed(stack.cards):
+                    if not card.flipped:
+                        cartas_mover.insert(0, card)
+                    else:
+                        break
+
                 if cartas_mover:
                     for pilhas in self.stacks:
                         if pilhas != stack and pilhas.can_enter(cartas_mover[0], len(cartas_mover)):
@@ -70,17 +75,25 @@ class Game():
             
         return podem_ser_movidos
     
-    #heuristica: para cada carta na fundação, soma 2 pontos, e para cada carta presente no estoque, soma 1 ponto
+    #heuristica: quanto mais cartas nas fundações, melhor; quanto mais cartas viradas para baixo nos tableaus, melhor (facilita futuras jogadas); penaliza cartas ainda escondidas (incentiva destravar tableaus); penaliza cartas acumuladas no stock/waste (quanto menos lá, melhor)
     def define_heuristica(self, state=None):
         pontuacao = 0
-        
+
         for fundacao in self.foundations:
-            pontuacao += len(fundacao.cards) * 2
-            
-            for carta in self.tableaus[0].cards:  # Supondo que queremos verificar a primeira pilha de tableaus
-                if not carta.flipped: # Se a carta está revelada (frente)
+            pontuacao += len(fundacao.cards) * 10
+
+        for tableau in self.tableaus:
+            for carta in tableau.cards:
+                if not carta.flipped:
                     pontuacao += 1
-                    
+
+        for tableau in self.tableaus:
+            for carta in tableau.cards:
+                if carta.flipped:
+                    pontuacao -= 1
+
+        pontuacao -= (self.stock.size + self.waste.size) * 0.5
+
         return pontuacao
 
     def create_deck(self):
@@ -258,3 +271,10 @@ class Game():
         self.drag.cards.clear()
         self.animations.add(self.drag.source_stack.animate())
     # endregion
+    # Dentro da classe Game em game.py
+    def __str__(self):
+        res = f"--- Estado do Jogo (Profundidade: {self.profundidade}) ---\n"
+        res += f"Foundations: {[len(f.cards) for f in self.foundations]}\n"
+        res += f"Tableaus (topos): {[t.cards[-1] if t.cards else 'Vazio' for t in self.tableaus]}\n"
+        res += "-----------------------------------"
+        return res

@@ -125,9 +125,8 @@ class App():
         if self.ui.current == UIType.GAME:
             from buscaProfundidade import BuscaProfundidade
             busca = BuscaProfundidade(self.game)
-            
-            # Roda em thread separada
-            thread = threading.Thread(target=busca.busca_profundidade, daemon=True)
+            snapshot = busca.clone_game_from(self.game)  # clona AQUI, no thread principal
+            thread = threading.Thread(target=busca.busca_profundidade, args=(snapshot,), daemon=True)
             thread.start()
 
     def on_key_n(self, event):
