@@ -129,6 +129,14 @@ class App():
             thread = threading.Thread(target=busca.busca_profundidade, args=(snapshot,), daemon=True)
             thread.start()
 
+    def on_key_a(self, event):
+        if self.ui.current == UIType.GAME:
+            from buscaAEstrela import BuscaAEstrela
+            busca = BuscaAEstrela(self.game)
+            thread = threading.Thread(target=busca.run, daemon=True)
+            thread.start()
+
+
     def on_key_n(self, event):
         if event.mod & pygame.KMOD_CTRL:
             self.new_game()

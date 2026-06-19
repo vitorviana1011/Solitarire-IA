@@ -2,6 +2,8 @@ import move
 from game import Game
 import heapq
 import itertools
+import random
+
 
 
 class BuscaProfundidade():
