@@ -1,5 +1,5 @@
 import pygame
-
+import random
 import assets
 import constants
 import buscaProfundidade
@@ -64,7 +64,7 @@ class App():
     def loop(self):
         while self.running:
             self.clock.tick(200)
-            print(f"FPS: {self.clock.get_fps():3.0f}", end="\r")
+            #print(f"FPS: {self.clock.get_fps():3.0f}", end="\r")
             self.events()
             self.ui.draw(self.screen)
 
@@ -117,15 +117,12 @@ class App():
 
     def on_mousedragend(self, event, b):
         self.mousedrag[b] = False
-    # endregion
-
-    # region Keyboard events
 
     def on_key_b(self, event):
         if self.ui.current == UIType.GAME:
             from buscaProfundidade import BuscaProfundidade
             busca = BuscaProfundidade(self.game)
-            snapshot = busca.clone_game_from(self.game)  # clona AQUI, no thread principal
+            snapshot = busca.clone_game_from(self.game)
             thread = threading.Thread(target=busca.busca_profundidade, args=(snapshot,), daemon=True)
             thread.start()
 
@@ -171,7 +168,6 @@ class App():
 
     def on_key_f12(self, event):
         self.game_win()
-    # endregion
 
     def screen_to_game(self, coords):
         return (coords[0]/self.scale - self.origin[0], coords[1]/self.scale - self.origin[1])
@@ -185,5 +181,7 @@ class App():
 
 
 if __name__ == "__main__":
+    #Testar seed 43,44,45,46 para mostrar funcionamento.
+    random.seed(43)
     app = App()
     app.loop()
