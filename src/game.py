@@ -25,6 +25,7 @@ class Game():
         self.profundidade = None
         self.table_goal_state = tuple((c.suit, c.symbol) for f in self.foundations for c in f.cards) # O estado do jogo é representado pelas cartas presentes nas fundações, em ordem crescente
         self.heurisita = 0
+        self.ai_moves_queue = []
 
     def create_deck(self):
         return deque(Card(self.app, suit, symbol) for symbol in Symbol for suit in Suit)
@@ -133,6 +134,10 @@ class Game():
                 if animation.done:
                     self.animations.remove(animation)
 
+            if not self.animations and hasattr(self, 'ai_moves_queue') and self.ai_moves_queue:
+                next_move_str = self.ai_moves_queue.pop(0)
+                self.execute_ai_move(next_move_str)
+
             if not self.animations and all(f.size == 13 for f in self.foundations):
                 print("WIN")
                 self.app.game_win()
@@ -201,7 +206,49 @@ class Game():
         self.drag.cards.clear()
         self.animations.add(self.drag.source_stack.animate())
     # endregion
-    # Dentro da classe Game em game.py
+
+    def execute_ai_move(self, desc: str):
+        from move import MoveMove, ConcurrentMoves, FlipMove
+
+        # Se for comprar carta ou reciclar o lixo, a própria mecânica de deal_card cuida das animações e viradas
+        if desc.startswith("S→W") or desc.startswith("Reciclar"):
+            self.deal_card()
+            return
+        
+        # Faz o parse da string gerada pelo BuscaAEstrela (ex: "T3→F0", "W→T2", "T1→T2 ×3")
+        parts = desc.split(" ")
+        action = parts[0]
+        origem_str, destino_str = action.split("→")
+        
+        # Mapeia a Origem
+        if origem_str == "W":
+            origem_stack = self.waste
+        elif origem_str.startswith("T"):
+            origem_stack = self.tableaus[int(origem_str[1:])]
+            
+        # Mapeia o Destino
+        if destino_str.startswith("F"):
+            destino_stack = self.foundations[int(destino_str[1:])]
+        elif destino_str.startswith("T"):
+            destino_stack = self.tableaus[int(destino_str[1:])]
+            
+        # Pega a quantidade de cartas a mover
+        amount = 1
+        if "×" in desc:
+            for p in parts:
+                if p.startswith("×"):
+                    amount = int(p[1:])
+                    break
+                    
+        move = MoveMove(origem_stack, destino_stack, amount)
+        
+        # Se estamos tirando uma carta de um Tableau e a próxima que sobrou lá estiver virada para baixo, 
+        # aciona o Flip (virar) junto com o movimento
+        if origem_stack in self.tableaus and origem_stack.size > amount and origem_stack.cards[-amount-1].flipped:
+            move = ConcurrentMoves((FlipMove(origem_stack.cards[-amount-1]), move))
+            
+        self.history.add_move(move)
+
     def __str__(self):
         res = f"--- Estado do Jogo (Profundidade: {self.profundidade}) ---\n"
         res += f"Foundations: {[len(f.cards) for f in self.foundations]}\n"

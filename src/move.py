@@ -25,6 +25,11 @@ class MoveMove(Move):
         self.amount = amount
         self.reverse = reverse
 
+    def __str__(self):
+        origem = type(self.from_stack).__name__.replace('Stack', '')
+        destino = type(self.to_stack).__name__.replace('Stack', '')
+        return f"Mover {self.amount} carta(s): {origem} -> {destino}"
+
     def undo(self):
         cards = [self.to_stack.cards.pop() for _ in range(self.amount)]
         if not self.reverse:
@@ -52,6 +57,9 @@ class FlipMove(Move):
     def redo(self):
         self.card.flip()
         return FlipAnimation(self.card)
+    
+    def __str__(self):
+        return "Virar carta"
 
 
 class ConcurrentMoves(Move):
@@ -64,6 +72,10 @@ class ConcurrentMoves(Move):
 
     def redo(self):
         return ConcurrentAnimations([move.redo() for move in self.moves])
+    
+    def __str__(self):
+        textos = [str(m) for m in self.moves]
+        return " e ".join(textos)
 
 
 class SequentialMoves(Move):
@@ -76,3 +88,6 @@ class SequentialMoves(Move):
 
     def redo(self):
         return SequentialAnimations(move.redo() for move in self.moves)
+    
+    def __str__(self):
+        return f"Movimento automático ({len(self.moves)} ações)"

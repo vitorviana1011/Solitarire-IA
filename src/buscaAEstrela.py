@@ -28,10 +28,8 @@ def _is_red(suit: Suit) -> bool:
 
 
 def heuristica(state: GameState) -> int:
-    """
-    Heurística aprimorada para quebrar o "Stock/Waste Churning".
-    Força o algoritmo a odiar cartas ocultas e priorizar revelá-las.
-    """
+    #Força o algoritmo a odiar cartas ocultas e priorizar revelá-las.
+    
     h = 52 - state.foundations_count()
 
     for tab in state.tableux:

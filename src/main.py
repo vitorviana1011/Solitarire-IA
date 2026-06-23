@@ -65,8 +65,20 @@ class App():
         while self.running:
             self.clock.tick(200)
             #print(f"FPS: {self.clock.get_fps():3.0f}", end="\r")
+            self.check_ai_thread()
             self.events()
             self.ui.draw(self.screen)
+
+    def check_ai_thread(self):
+        if hasattr(self, 'ai_thread') and self.ai_thread is not None:
+            if not self.ai_thread.is_alive():
+                if self.ai_search.found:
+                    print("A* terminou! Reproduzindo solução na Main Thread.")
+                    # Passa a lista de strings para a fila do jogo
+                    self.game.ai_moves_queue = self.ai_search.solution_path.copy()
+                else:
+                    print("A* concluiu sem encontrar solução.")
+                self.ai_thread = None
 
     def events(self):
         for event in pygame.event.get():
@@ -92,6 +104,10 @@ class App():
 
     def game_win(self):
         self.game.paused = True
+        
+        # Converte o histórico de jogadas para os textos usando o __str__ criado
+        self.ui.win_moves = [str(m) for m in self.game.history.past]
+        
         self.ui.current = UIType.WIN
 
     # region Mouse events
@@ -128,10 +144,15 @@ class App():
 
     def on_key_a(self, event):
         if self.ui.current == UIType.GAME:
+            if hasattr(self, 'ai_thread') and self.ai_thread is not None and self.ai_thread.is_alive():
+                print("A IA já está pensando... aguarde.")
+                return
+            
+            print("Iniciando IA A* em Background...")
             from buscaAEstrela import BuscaAEstrela
-            busca = BuscaAEstrela(self.game)
-            thread = threading.Thread(target=busca.run, daemon=True)
-            thread.start()
+            self.ai_search = BuscaAEstrela(self.game)
+            self.ai_thread = threading.Thread(target=self.ai_search.run, daemon=True)
+            self.ai_thread.start()
 
 
     def on_key_n(self, event):
@@ -182,6 +203,6 @@ class App():
 
 if __name__ == "__main__":
     #Testar seed 43,44,45,46 para mostrar funcionamento.
-    random.seed(43)
+    random.seed(45)
     app = App()
     app.loop()

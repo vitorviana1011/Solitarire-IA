@@ -165,6 +165,19 @@ class UI():
         for button in self.win_buttons:
             button.draw(screen)
 
+        # DESENHA A LISTA DE MOVIMENTOS
+        # Posição baseada na escala para não sobrepor o jogo
+        x_offset = 20 * self.scale_ref
+        y_offset = (constants.APPBAR_HEIGHT + 20) * self.scale_ref
+        
+        # Pega os últimos 25 movimentos do histórico
+        movimentos_recentes = self.win_moves[-25:] if hasattr(self, 'win_moves') else []
+        
+        for i, move_text in enumerate(movimentos_recentes):
+            text_surface = self.win_font.render(f"{i+1}. {move_text}", True, constants.WHITE)
+            # O espaçamento vertical acompanha a altura da fonte
+            screen.blit(text_surface, (x_offset, y_offset + (i * text_surface.get_height() * 1.2)))
+
     def draw(self, screen: pygame.Surface):
         self.draw_background(screen)
         self.draw_methods[self.current](screen)
@@ -213,7 +226,9 @@ class UI():
 
     def render_win(self, size, scale):
         self.win_surf = pygame.Surface(size).convert_alpha()
-        self.win_surf.fill(constants.TRANSPARENT)
+        # Adicionei um fundo escurecido para facilitar a leitura do texto
+        self.win_surf.fill((0, 0, 0, 180)) 
+        
         text = self.big_font.render("Victory!", True, constants.WHITE)
         text.set_alpha(constants.ENABLED_ALPHA)
         self.win_surf.blit(text, ((size[0]-text.get_width())/2, 320*scale))
@@ -222,6 +237,10 @@ class UI():
             TextButton((self.middle(size, scale) - 136, 256), 128, scale, "NEW GAME", lambda: self.app.new_game()),
             TextButton((self.middle(size, scale) + 8, 256), 128, scale, "MAIN MENU", self.home),
         ]
+        
+        # INICIALIZA A FONTE AQUI (com suporte à escala responsiva da sua UI)
+        self.win_font = pygame.font.SysFont("Arial", round(16 * scale))
+        self.scale_ref = scale # Guardar a escala para espaçamento
 
     def render(self, size, scale):
         self.title_font = pygame.font.Font(assets.normalize_path("Roboto-Regular.ttf"), round(48*scale))
