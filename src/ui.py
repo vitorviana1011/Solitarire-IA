@@ -165,8 +165,6 @@ class UI():
         for button in self.win_buttons:
             button.draw(screen)
 
-        # DESENHA A LISTA DE MOVIMENTOS
-        # Posição baseada na escala para não sobrepor o jogo
         x_offset = 20 * self.scale_ref
         y_offset = (constants.APPBAR_HEIGHT + 20) * self.scale_ref
         
@@ -226,7 +224,7 @@ class UI():
 
     def render_win(self, size, scale):
         self.win_surf = pygame.Surface(size).convert_alpha()
-        # Adicionei um fundo escurecido para facilitar a leitura do texto
+
         self.win_surf.fill((0, 0, 0, 180)) 
         
         text = self.big_font.render("Victory!", True, constants.WHITE)
@@ -238,7 +236,6 @@ class UI():
             TextButton((self.middle(size, scale) + 8, 256), 128, scale, "MAIN MENU", self.home),
         ]
         
-        # INICIALIZA A FONTE AQUI (com suporte à escala responsiva da sua UI)
         self.win_font = pygame.font.SysFont("Arial", round(16 * scale))
         self.scale_ref = scale # Guardar a escala para espaçamento
 
