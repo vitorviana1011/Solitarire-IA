@@ -23,7 +23,7 @@ Para iniciar o jogo, execute o arquivo principal:
 * `python main.py`
 
 ## Executando a IA
-* Após iniciar o jogo, espere a animação das cartas. Assim que todas as carats estiveram na posição inicial, pressione a tecla ¨A¨. O jogo será resolvido sozinho se houver solução.
+Após iniciar o jogo, espere a animação das cartas. Assim que todas as carats estiveram na posição inicial, pressione a tecla ¨A¨. O jogo será resolvido sozinho se houver solução.
 
 ## Sistema de Sementes (Seed) e Reprodutibilidade
 
