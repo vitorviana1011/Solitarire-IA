@@ -22,8 +22,8 @@ Clone o repositório ou baixe os arquivos fonte. Certifique-se de que a pasta as
 Para iniciar o jogo, execute o arquivo principal:
 * `python main.py`
 
-## Teclas Implementadas
-* A: Executar a Inteligência Artificial (Algoritmo A*). O jogo será resolvido sozinho se houver solução.
+## Executando a IA
+* Após iniciar o jogo, espere a animação das cartas. Assim que todas as carats estiveram na posição inicial, pressione a tecla ¨A¨. O jogo será resolvido sozinho se houver solução.
 
 ## Estrutura do Projeto
 * main.py: Loop principal do Pygame, gerenciamento de eventos, atalhos de teclado e inicialização de threads para a IA.
