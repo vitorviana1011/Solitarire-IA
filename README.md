@@ -25,6 +25,16 @@ Para iniciar o jogo, execute o arquivo principal:
 ## Executando a IA
 * Após iniciar o jogo, espere a animação das cartas. Assim que todas as carats estiveram na posição inicial, pressione a tecla ¨A¨. O jogo será resolvido sozinho se houver solução.
 
+## Sistema de Sementes (Seed) e Reprodutibilidade
+
+O projeto conta com um sistema de sementes para o gerador de números pseudo-aleatórios do Python. Esta funcionalidade é para garantir que o problema tenha solução no teste da IA.
+
+No ponto de entrada do programa, a semente é definida explicitamente:
+* **Configuração:** O valor padrão definido no código é a semente `46`.
+* **Demonstração:** O código possui indicações para testes com as sementes `43`, `44` e `46`, que servem para demonstrar o funcionamento correto e a capacidade de resolução dos algoritmos de busca. A seed `45` não possui solução e o algoritmo roda indefinidamente procurando uma solução.
+
+Ao alterar o valor numérico passado para a função de semente, o processo de embaralhamento inicial gera um layout de jogo completamente diferente para as colunas do tabuleiro.
+
 ## Estrutura do Projeto
 * main.py: Loop principal do Pygame, gerenciamento de eventos, atalhos de teclado e inicialização de threads para a IA.
 
